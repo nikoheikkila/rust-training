@@ -1,45 +1,64 @@
-version: '3'
+version: "3"
 
 vars:
-    ENTRYPOINT: src/main.rs
-    PACKAGE:
-        sh: fd --type directory --maxdepth 1 | sed 's/\///g' | fzf
+  SOURCES: src/*.rs
+  PACKAGE:
+    # Interactively select a project to work on
+    sh: fd --type directory --maxdepth 1 | sed 's/\///g' | fzf --ansi +m --header='Choose a project'
 
 tasks:
 
-    build:
-        dir: "{{.PACKAGE}}"
-        sources:
-            - src/*.rs
-        generates:
-            - target/debug/{{.PACKAGE}}
-        cmds:
-            - "[[ ! -d bin ]] && mkdir -p bin || true"
-            - rustc {{.ENTRYPOINT}} -o bin/{{.PACKAGE}} {{.CLI_ARGS}}
+  clean:
+    desc: Clean up the build directory of artifacts
+    dir: "{{.PACKAGE}}"
+    cmds:
+      - cargo clean {{.CLI_ARGS}}
 
-    dev:
-        dir: "{{.PACKAGE}}"
-        cmds:
-            - cargo run {{.ENTRYPOINT}} {{.CLI_ARGS}}
+  build:
+    desc: Compile the Rust source code to executable
+    dir: "{{.PACKAGE}}"
+    sources:
+      - "{{.SOURCES}}"
+    generates:
+      - target/debug/{{.PACKAGE}}
+    cmds:
+      - cargo build {{.CLI_ARGS}}
 
-    start:
-        dir: "{{.PACKAGE}}"
-        deps:
-            - build
-        cmds:
-            - ./bin/{{.PACKAGE}} {{.CLI_ARGS}}
+  dev:
+    desc: Run the executable straight from source
+    dir: "{{.PACKAGE}}"
+    cmds:
+      - cargo run {{.CLI_ARGS}}
 
-    lint:
-        dir: "{{.PACKAGE}}"
-        sources:
-            - src/*.rs
-        cmds:
-            - cargo clippy --all-targets --all-features -- -D warnings
+  start:
+    desc: Run the built executable
+    dir: "{{.PACKAGE}}"
+    deps:
+      - task: build
+    cmds:
+      - ./target/debug/{{.PACKAGE}} {{.CLI_ARGS}}
 
-    format:
-        dir: "{{.PACKAGE}}"
-        sources:
-            - src/*.rs
-        cmds:
-            - cargo clippy --fix
-            - cargo fmt
+  lint:
+    desc: Lint the Rust source code
+    dir: "{{.PACKAGE}}"
+    sources:
+      - "{{.SOURCES}}"
+    cmds:
+      - cargo clippy {{.CLI_ARGS}}
+
+  format:
+    desc: Format the Rust source code
+    dir: "{{.PACKAGE}}"
+    sources:
+      - "{{.SOURCES}}"
+    cmds:
+      - cargo clippy --fix
+      - cargo fmt
+
+  test:
+    desc: Test the application
+    dir: "{{.PACKAGE}}"
+    sources:
+      - "{{.SOURCES}}"
+    cmds:
+      - cargo test --verbose {{.CLI_ARGS}}
