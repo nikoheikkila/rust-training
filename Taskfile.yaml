@@ -1,0 +1,45 @@
+version: '3'
+
+vars:
+    ENTRYPOINT: src/main.rs
+    PACKAGE:
+        sh: fd --type directory --maxdepth 1 | sed 's/\///g' | fzf
+
+tasks:
+
+    build:
+        dir: "{{.PACKAGE}}"
+        sources:
+            - src/*.rs
+        generates:
+            - target/debug/{{.PACKAGE}}
+        cmds:
+            - "[[ ! -d bin ]] && mkdir -p bin || true"
+            - rustc {{.ENTRYPOINT}} -o bin/{{.PACKAGE}} {{.CLI_ARGS}}
+
+    dev:
+        dir: "{{.PACKAGE}}"
+        cmds:
+            - cargo run {{.ENTRYPOINT}} {{.CLI_ARGS}}
+
+    start:
+        dir: "{{.PACKAGE}}"
+        deps:
+            - build
+        cmds:
+            - ./bin/{{.PACKAGE}} {{.CLI_ARGS}}
+
+    lint:
+        dir: "{{.PACKAGE}}"
+        sources:
+            - src/*.rs
+        cmds:
+            - cargo clippy --all-targets --all-features -- -D warnings
+
+    format:
+        dir: "{{.PACKAGE}}"
+        sources:
+            - src/*.rs
+        cmds:
+            - cargo clippy --fix
+            - cargo fmt
