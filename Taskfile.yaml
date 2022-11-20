@@ -2,11 +2,20 @@ version: "3"
 
 vars:
   SOURCES: src/*.rs
-  PACKAGE:
-    # Interactively select a project to work on
-    sh: fd --type directory --maxdepth 1 | sed 's/\///g' | fzf --ansi +m --header='Choose a project'
+  PACKAGE: '{{ default "hello_world" .PACKAGE }}'
 
 tasks:
+
+  default:
+    run: always
+    cmds:
+      - |
+        {{range $project := .PROJECTS | splitLines -}}
+        PACKAGE={{$project}} task format test
+        {{end}}
+    vars:
+      PROJECTS:
+        sh: fd --type directory --maxdepth 1 | sed 's/\///g'
 
   clean:
     desc: Clean up the build directory of artifacts
@@ -52,11 +61,14 @@ tasks:
     sources:
       - "{{.SOURCES}}"
     cmds:
-      - cargo clippy --fix
+      - cargo clippy --fix --allow-dirty
       - cargo fmt
 
   test:
     desc: Test the application
+    deps:
+      - lint
+      - build
     dir: "{{.PACKAGE}}"
     sources:
       - "{{.SOURCES}}"
