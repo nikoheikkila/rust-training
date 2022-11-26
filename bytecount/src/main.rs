@@ -12,18 +12,26 @@ fn main() {
     let args = Args::parse();
 
     if args.filenames.is_empty() {
-        println!("Please, input at least one filename");
+        eprintln!("Please, input at least one filename");
         return;
     }
 
-    let mut len = 0;
+    let result = args.filenames.iter().map(count_bytes).sum::<usize>();
 
-    for filename in args.filenames {
-        let data = read(&filename).unwrap();
-        len += data.len();
+    println!("Total: {}", result);
+}
 
-        println!("{}: {} bytes", filename.display(), data.len());
+fn count_bytes(filename: &PathBuf) -> usize {
+    let data = read(filename);
+
+    match data {
+        Ok(data) => data.len(),
+        Err(e) => handle_error(e),
     }
+}
 
-    println!("total: {}", len);
+fn handle_error(e: std::io::Error) -> usize {
+    eprintln!("Error: {}", e);
+
+    0
 }
