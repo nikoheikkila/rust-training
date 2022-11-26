@@ -5,6 +5,7 @@
         "cmds",
         "maxdepth",
         "rustc",
+        "thiserror",
         "vars"
     ]
 }
